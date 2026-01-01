@@ -1,24 +1,44 @@
 from scanner.live_scanner import scan_website
 from scanner.report_generator import generate_json_report, generate_html_report
-import sys
+
+def get_input(prompt, default=None):
+    value = input(prompt).strip()
+    if not value and default is not None:
+        return default
+    return value
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python3 main.py <target_url>")
-        sys.exit(1)
+    print("=== API Key Leakage Scanner (Live Website Mode) ===\n")
 
-    target = sys.argv[1]
+    target = get_input("Enter your target URL: ")
+    if not target.startswith("http"):
+        print("[-] Invalid URL. Include http:// or https://")
+        return
 
-    print("[*] Scanning website...")
-    findings = scan_website(target)
+    max_pages = get_input("Maximum pages to crawl (default 10): ", "10")
+    delay = get_input("Request delay in seconds (default 1.0): ", "1.0")
 
-    json_report = generate_json_report(findings)
-    html_report = generate_html_report(findings)
+    json_choice = get_input("Generate JSON report? (y/n, default y): ", "y").lower()
+    html_choice = get_input("Generate HTML report? (y/n, default y): ", "y").lower()
 
-    print("[+] Scan completed")
+    print("\n[*] Scanning website...\n")
+
+    findings = scan_website(
+        target,
+        max_pages=int(max_pages),
+        delay=float(delay)
+    )
+
+    if json_choice == "y":
+        json_path = generate_json_report(findings)
+        print(f"[+] JSON report saved to: {json_path}")
+
+    if html_choice == "y":
+        html_path = generate_html_report(findings)
+        print(f"[+] HTML report saved to: {html_path}")
+
+    print("\n[+] Scan completed")
     print(f"[+] Total findings: {len(findings)}")
-    print(f"[+] JSON report: {json_report}")
-    print(f"[+] HTML report: {html_report}")
 
 if __name__ == "__main__":
     main()
