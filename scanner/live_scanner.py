@@ -3,12 +3,17 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from scanner.secret_scanner import scan_text
 
+def same_domain(url, base_domain):
+    parsed = urlparse(url)
+    return parsed.netloc == base_domain or parsed.netloc == f"www.{base_domain}"
+
 def scan_website(start_url, max_pages=10):
     visited = set()
     to_visit = [start_url]
     findings = []
 
-    base_domain = urlparse(start_url).netloc
+    parsed_base = urlparse(start_url)
+    base_domain = parsed_base.netloc.replace("www.", "")
 
     while to_visit and len(visited) < max_pages:
         current_url = to_visit.pop(0)
@@ -27,13 +32,16 @@ def scan_website(start_url, max_pages=10):
 
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        # 🔹 Extract JS files
+        # 🔹 Scan ONLY same-domain JS files
         for script in soup.find_all("script"):
             src = script.get("src")
             if not src:
                 continue
 
             js_url = urljoin(current_url, src)
+
+            if not same_domain(js_url, base_domain):
+                continue
 
             try:
                 js_resp = requests.get(js_url, timeout=10)
@@ -42,13 +50,12 @@ def scan_website(start_url, max_pages=10):
             except Exception:
                 pass
 
-        # 🔹 Extract internal links
+        # 🔹 Crawl ONLY same-domain pages
         for link in soup.find_all("a", href=True):
             href = link.get("href")
             full_url = urljoin(current_url, href)
-            parsed = urlparse(full_url)
 
-            if parsed.netloc == base_domain:
+            if same_domain(full_url, base_domain):
                 if full_url not in visited:
                     to_visit.append(full_url)
 
