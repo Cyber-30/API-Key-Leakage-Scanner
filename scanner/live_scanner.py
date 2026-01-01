@@ -27,7 +27,7 @@ def safe_get(url):
         allow_redirects=True
     )
 
-def scan_website(start_url, max_pages=10):
+def scan_website(start_url, max_pages=10, delay=1.0):
     visited = set()
     to_visit = [start_url]
     findings = []
