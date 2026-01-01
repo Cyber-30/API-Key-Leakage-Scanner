@@ -1,11 +1,31 @@
+import time
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from scanner.secret_scanner import scan_text
 
+REQUEST_DELAY = 1.0
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+    "Accept": "text/html,application/javascript",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Connection": "close"
+}
+
 def same_domain(url, base_domain):
     parsed = urlparse(url)
     return parsed.netloc == base_domain or parsed.netloc == f"www.{base_domain}"
+
+def safe_get(url):
+    time.sleep(REQUEST_DELAY)
+    return requests.get(
+        url,
+        headers=HEADERS,
+        timeout=10,
+        allow_redirects=True
+    )
 
 def scan_website(start_url, max_pages=10):
     visited = set()
@@ -24,7 +44,7 @@ def scan_website(start_url, max_pages=10):
         visited.add(current_url)
 
         try:
-            resp = requests.get(current_url, timeout=10)
+            resp = safe_get(current_url)
         except Exception:
             continue
 
@@ -32,7 +52,7 @@ def scan_website(start_url, max_pages=10):
 
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        # 🔹 Scan ONLY same-domain JS files
+        # 🔹 Same-domain JS only
         for script in soup.find_all("script"):
             src = script.get("src")
             if not src:
@@ -44,13 +64,13 @@ def scan_website(start_url, max_pages=10):
                 continue
 
             try:
-                js_resp = requests.get(js_url, timeout=10)
+                js_resp = safe_get(js_url)
                 if js_resp.status_code == 200:
                     findings.extend(scan_text(js_resp.text, js_url))
             except Exception:
                 pass
 
-        # 🔹 Crawl ONLY same-domain pages
+        # 🔹 Same-domain page links
         for link in soup.find_all("a", href=True):
             href = link.get("href")
             full_url = urljoin(current_url, href)
