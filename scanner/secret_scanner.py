@@ -1,20 +1,39 @@
 from scanner.regex_patterns import SECRET_PATTERNS
 
-def scan_file(file_path):
+SEVERITY_MAP = {
+    "AWS_ACCESS_KEY": "CRITICAL",
+    "AWS_SECRET_KEY": "CRITICAL",
+    "GOOGLE_API_KEY": "INFO",
+    "JWT_TOKEN": "HIGH",
+    "GENERIC_API_KEY": "MEDIUM",
+    "BEARER_TOKEN": "HIGH"
+}
+
+def mask_secret(value):
+    if len(value) <= 8:
+        return "***"
+    return value[:4] + "*" * (len(value) - 8) + value[-4:]
+
+def scan_text(content, source):
     findings = []
 
-    try:
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-            for line_no, line in enumerate(f, start=1):
-                for secret_type, pattern in SECRET_PATTERNS.items():
-                    if pattern.search(line):
-                        findings.append({
-                            "file": file_path,
-                            "line": line_no,
-                            "type": secret_type,
-                            "content": line.strip()
-                        })
-    except Exception:
-        pass
+    for line_no, line in enumerate(content.splitlines(), start=1):
+
+        # 🔹 Skip huge minified lines (noise reduction)
+        if len(line) > 2000:
+            continue
+
+        for secret_type, pattern in SECRET_PATTERNS.items():
+            match = pattern.search(line)
+            if match:
+                secret = match.group(0)
+
+                findings.append({
+                    "source": source,
+                    "line": line_no,
+                    "type": secret_type,
+                    "severity": SEVERITY_MAP.get(secret_type, "LOW"),
+                    "secret": mask_secret(secret),
+                })
 
     return findings

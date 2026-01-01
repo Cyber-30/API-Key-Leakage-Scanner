@@ -1,23 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-from scanner.regex_patterns import SECRET_PATTERNS
-
-def scan_text(content, source):
-    findings = []
-
-    for line_no, line in enumerate(content.splitlines(), start=1):
-        for secret_type, pattern in SECRET_PATTERNS.items():
-            if pattern.search(line):
-                findings.append({
-                    "source": source,
-                    "line": line_no,
-                    "type": secret_type,
-                    "content": line.strip()
-                })
-
-    return findings
-
+from scanner.secret_scanner import scan_text
 
 def scan_website(url):
     findings = []
@@ -29,10 +13,8 @@ def scan_website(url):
 
     soup = BeautifulSoup(resp.text, "html.parser")
 
-    # 🔹 Scan inline JS + HTML
     findings.extend(scan_text(resp.text, url))
 
-    # 🔹 Scan linked JS files
     for script in soup.find_all("script"):
         src = script.get("src")
         if not src:
