@@ -2,11 +2,11 @@ from scanner.regex_patterns import SECRET_PATTERNS
 
 SEVERITY_MAP = {
     "AWS_ACCESS_KEY": "CRITICAL",
-    "AWS_SECRET_KEY": "CRITICAL",
-    "GOOGLE_API_KEY": "INFO",
+    "GOOGLE_API_KEY": "HIGH",
+    "FIREBASE_API_KEY": "HIGH",
     "JWT_TOKEN": "HIGH",
-    "GENERIC_API_KEY": "MEDIUM",
-    "BEARER_TOKEN": "HIGH"
+    "SLACK_TOKEN": "CRITICAL",
+    "GENERIC_SECRET": "MEDIUM",
 }
 
 def mask_secret(value):
@@ -16,24 +16,28 @@ def mask_secret(value):
 
 def scan_text(content, source):
     findings = []
+    seen = set()  # Deduplication
+    lines = content.splitlines()
 
-    for line_no, line in enumerate(content.splitlines(), start=1):
-
-        # 🔹 Skip huge minified lines (noise reduction)
-        if len(line) > 2000:
-            continue
-
+    for line_no, line in enumerate(lines, start=1):
         for secret_type, pattern in SECRET_PATTERNS.items():
-            match = pattern.search(line)
-            if match:
-                secret = match.group(0)
+            for match in pattern.finditer(line):
+                raw_secret = match.group(0)
+                severity = SEVERITY_MAP.get(secret_type, "INFO")
+
+                key = (source, secret_type, raw_secret)
+                if key in seen:
+                    continue
+                seen.add(key)
+
+                print(f"[!] {severity} FINDING: Detected {secret_type} in {source}")
 
                 findings.append({
                     "source": source,
                     "line": line_no,
                     "type": secret_type,
-                    "severity": SEVERITY_MAP.get(secret_type, "LOW"),
-                    "secret": mask_secret(secret),
+                    "severity": severity,
+                    "secret": mask_secret(raw_secret),
                 })
 
     return findings
