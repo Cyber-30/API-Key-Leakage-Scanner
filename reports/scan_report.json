@@ -1,0 +1,30 @@
+{
+    "scan_time": "2026-01-02T07:24:23.629821Z",
+    "total_findings": 3,
+    "findings": [
+        {
+            "source": "https://apis.guru/graphql-voyager/voyager.standalone.js",
+            "line": 283,
+            "type": "Amazon AWS Access Key ID",
+            "severity": "CRITICAL",
+            "confidence": null,
+            "secret": "ASIAIAFBASAAKAIAEQEA"
+        },
+        {
+            "source": "https://apis.guru/graphql-voyager/voyager.standalone.js",
+            "line": 283,
+            "type": "Amazon AWS Access Key ID",
+            "severity": "CRITICAL",
+            "confidence": null,
+            "secret": "ASIAIANBASAAKAIAEQEA"
+        },
+        {
+            "source": "https://apis.guru/graphql-voyager/voyager.standalone.js",
+            "line": 283,
+            "type": "Amazon AWS Access Key ID",
+            "severity": "CRITICAL",
+            "confidence": null,
+            "secret": "AKIASIDRQRARAAAAAAAA"
+        }
+    ]
+}
