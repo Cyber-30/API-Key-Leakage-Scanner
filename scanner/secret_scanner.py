@@ -30,28 +30,45 @@ def mask_secret(secret):
 
 
 def extract_secret(match):
-    """
-    Extract the real secret:
-    - Prefer named group
-    - Else last capture group
-    - Else full match
-    """
-    if match.groupdict():
-        return next(v for v in match.groupdict().values() if v)
+    """Return the most specific captured secret.
 
+    Rules:
+    - If the regex has capture groups, return ONLY the last capture group.
+    - Otherwise return the full match.
+    This avoids returning arbitrary named-group artifacts that may not
+    appear verbatim in the source line.
+    """
+    if not match:
+        return None
+
+    # If there are numbered capture groups, prefer the last one.
     if match.lastindex:
-        return match.group(match.lastindex)
+        try:
+            return match.group(match.lastindex)
+        except Exception:
+            return match.group(0)
 
+    # No capture groups — return full match
     return match.group(0)
 
 
 def is_false_positive(secret, secret_type):
-    if secret_type == "Generic Secret":
+    if not secret:
+        return True
+
+    st_lower = secret_type.lower()
+
+    # Treat any pattern containing 'generic' or 'assignment' as generic/noisy
+    if "generic" in st_lower or "assignment" in st_lower:
         if not ENABLE_GENERIC_SECRET:
             return True
+
+        # Reject short or obviously weak values
         if len(secret) < 20:
             return True
-        if secret.lower() in {
+
+        low = secret.lower().strip().strip('"\'')
+        common = {
             "password",
             "token",
             "secret",
@@ -59,8 +76,12 @@ def is_false_positive(secret, secret_type):
             "accesskey",
             "users",
             "version",
-            "config"
-        }:
+            "config",
+            "header",
+            "bearer",
+        }
+
+        if low in common:
             return True
 
     return False

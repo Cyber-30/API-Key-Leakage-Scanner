@@ -4,8 +4,10 @@ SECRET_PATTERNS = {
 
     # 🔐 HIGH CONFIDENCE
     "Google API Key": re.compile(r'AIza[0-9A-Za-z-_]{35}'),
-    "AWS Access Key ID": re.compile(r'A[SK]IA[0-9A-Z]{16}'),
-    "Stripe Live Key": re.compile(r'sk_live_[0-9a-zA-Z]{24}'),
+    "Firebase API Key": re.compile(r'AIza[0-9A-Za-z-_]{35}'),
+    "Amazon AWS Access Key ID": re.compile(r'A[SK]IA[0-9A-Z]{16}'),
+    "AWS Secret Key": re.compile(r"aws_secret_access_key\s*[:=]\s*['\"]?[A-Za-z0-9/+=]{40}['\"]?", re.IGNORECASE),
+    "Stripe API Key": re.compile(r'sk_(live|test)_[0-9a-zA-Z]{24}'),
     "Slack Token": re.compile(r'xox[baprs]-[0-9a-zA-Z]{10,48}'),
     "JWT": re.compile(r'ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'),
 

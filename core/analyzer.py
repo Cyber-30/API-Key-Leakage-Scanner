@@ -1,5 +1,5 @@
-from detectors.jwt_detector import find_jwts
-from validators.jwt_validator import is_valid_jwt
+from detectors.jwt_detectors import find_jwts
+from validators.jwt_validators import is_valid_jwt
 from scoring.entropy import entropy
 from scoring.context import context_score
 from filters.vendor_filter import is_vendor
