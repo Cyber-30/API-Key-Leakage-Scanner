@@ -8,11 +8,14 @@ SEVERITY_MAP = {
     "Amazon AWS Access Key ID": "CRITICAL",
     "JSON Web Token (JWT)": "MEDIUM",
     "Slack Token": "HIGH",
+    "OAuth Token": "MEDIUM",
     "Generic Secret": "LOW"
 }
 
-# Toggle this
-SHOW_FULL_SECRET = True  # 🔥 set False for masking
+# 🔥 Toggle behavior
+SHOW_FULL_SECRET = True        # False → mask output
+ENABLE_GENERIC_SECRET = False # Disable noisy rule by default
+
 
 def mask_secret(value):
     if SHOW_FULL_SECRET:
@@ -21,14 +24,29 @@ def mask_secret(value):
         return "***"
     return value[:4] + "*" * (len(value) - 8) + value[-4:]
 
+
 def is_false_positive(secret, secret_type):
-    # Filter obvious junk
     if secret_type == "Generic Secret":
+        if not ENABLE_GENERIC_SECRET:
+            return True
         if len(secret) < 20:
             return True
-        if secret.lower() in ["users", "token", "header", "version"]:
+        if secret.lower() in {
+            "users", "token", "header", "version",
+            "enableeventlisteners", "disableeventlisteners"
+        }:
             return True
     return False
+
+
+def extract_secret(match):
+    """
+    Always extract the REAL secret value
+    """
+    if match.lastindex:
+        return match.group(match.lastindex)
+    return match.group(0)
+
 
 def scan_text(content, source, global_seen):
     findings = []
@@ -36,21 +54,22 @@ def scan_text(content, source, global_seen):
 
     for line_no, line in enumerate(lines, start=1):
         for secret_type, pattern in SECRET_PATTERNS.items():
+
             for match in pattern.finditer(line):
-                secret = match.group(0)
+                secret = extract_secret(match)
 
                 if is_false_positive(secret, secret_type):
                     continue
 
-                # Global deduplication key
-                unique_key = hashlib.sha256(
-                    f"{source}|{line_no}|{secret}".encode()
+                # 🔑 Deduplicate by source + secret (NOT line number)
+                dedup_key = hashlib.sha256(
+                    f"{source}|{secret}".encode()
                 ).hexdigest()
 
-                if unique_key in global_seen:
+                if dedup_key in global_seen:
                     continue
 
-                global_seen.add(unique_key)
+                global_seen.add(dedup_key)
 
                 findings.append({
                     "source": source,
